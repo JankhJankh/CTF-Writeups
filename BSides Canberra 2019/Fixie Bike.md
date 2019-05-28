@@ -14,8 +14,8 @@ Exploring more of the website functionality, I also noticed that I could add a c
 ![Image](https://raw.githubusercontent.com/JankhJankh/CTF-Writeups/master/BSides%20Canberra%202019/images/fixie5.png)            
 As the banner is reflected to the user, I immediately checked for Cross-Site Scripting (or XSS). The idea being that if we can enter user data and make the browser treat our data as part of the website, we could potentially attack other users of the website – such as an administrator. 
 ![Image](https://raw.githubusercontent.com/JankhJankh/CTF-Writeups/master/BSides%20Canberra%202019/images/fixie6.png)            
-Unfortunately, XSS is sanitised here, as shown by the <h1>hi</h1> being rendered literally instead of as HTML (in which case, it would just say “hi” and be in a different font).     
-I ended up trying a few more strings, the last of which was “<h1>aaaa</h1>”, and then looked at the website via a proxy again, this time aiming to see how it is sanitised. 
+Unfortunately, XSS is sanitised here, as shown by the *\<h1\>hi\</h1\>* being rendered literally instead of as HTML (in which case, it would just say “hi” and be in a different font).     
+I ended up trying a few more strings, the last of which was “\<h1\>aaaa\</h1\>”*, and then looked at the website via a proxy again, this time aiming to see how it is sanitised. 
 ![Image](https://raw.githubusercontent.com/JankhJankh/CTF-Writeups/master/BSides%20Canberra%202019/images/fixie7.png)            
 However, upon viewing this code I saw that the banner string I had sent to the webserver had been put into a server header. Headers are extra bits of information hidden from users that give the browser extra information about the website. such as how much data there is, what type of data it is, and any cookies that the server has generated for the user.      
 Now that I knew that I could put user data into a header I attempted header injection. Header injection is an exploit where if user data is controlled in a header, and some form of newline (‘\r\n’, ‘\n’, ‘0x0a’, ‘0x0d’) can be put into the header, you could create any new headers you want. If there is no restriction on space, you could potentially control all data returned to the user (after the injection point, that is). A classic example is adding XSS to the website and then commenting out the rest of it. The example code for this is shown below.
@@ -50,24 +50,22 @@ So, from this I was confident that the data was interacting with server headers.
 ![Image](https://raw.githubusercontent.com/JankhJankh/CTF-Writeups/master/BSides%20Canberra%202019/images/fixie22.png)           
 This unfortunately did not work as aiohttp correctly ignores the Location header on 200 responses. This is understandable behaviour because the specification says to only pay attention to Location headers if it is on a 301 (Redirect), and not a 200 (OK) response. Doing more research into possible ways to exploit the aiohttp client, I came across a CVE from 2018.     
 *https://github.com/aio-libs/aiohttp-session/issues/272*
-![Image](https://raw.githubusercontent.com/JankhJankh/CTF-Writeups/master/BSides%20Canberra%202019/images/fixie22.png)           
+![Image](https://raw.githubusercontent.com/JankhJankh/CTF-Writeups/master/BSides%20Canberra%202019/images/fixie23.png)           
 This CVE is for a session fixation attack, which is a vulnerability in which sessions are not correctly invalidated. In this case if a cookie is not tied to a session, but a user currently has a cookie, the server will use that cookie for its session.      
 This attack made a lot of sense for this scenario as web clients need to interact with Set-Cookie headers, as without them these web clients would be unable to maintain sessions. So, I followed this attack chain by injecting the Set-Cookie header into the server so that any user who accesses the server will have their session cookie overwritten with mine.
-![Image](https://raw.githubusercontent.com/JankhJankh/CTF-Writeups/master/BSides%20Canberra%202019/images/fixie23.png)           
 ![Image](https://raw.githubusercontent.com/JankhJankh/CTF-Writeups/master/BSides%20Canberra%202019/images/fixie24.png)           
-tested this new header injection in my browser and it correctly sets this new cookie – if the user already has a cookie it becomes overwritten, and if they do not have a cookie it is added (at least, this was the functionality I believe I was seeing).
 ![Image](https://raw.githubusercontent.com/JankhJankh/CTF-Writeups/master/BSides%20Canberra%202019/images/fixie25.png)           
-Assuming the admin was also viewing the page, their session should have been overwritten with our cookie as well. By logging out, we invalidate their session, but let the admin keep their cookie. When they log back in, the cookie should have their privileges associated with it.
+tested this new header injection in my browser and it correctly sets this new cookie – if the user already has a cookie it becomes overwritten, and if they do not have a cookie it is added (at least, this was the functionality I believe I was seeing).
 ![Image](https://raw.githubusercontent.com/JankhJankh/CTF-Writeups/master/BSides%20Canberra%202019/images/fixie26.png)           
-We can now refresh the page, and our cookie now has admin privileges
+Assuming the admin was also viewing the page, their session should have been overwritten with our cookie as well. By logging out, we invalidate their session, but let the admin keep their cookie. When they log back in, the cookie should have their privileges associated with it.
 ![Image](https://raw.githubusercontent.com/JankhJankh/CTF-Writeups/master/BSides%20Canberra%202019/images/fixie27.png)           
-Once I had been logged back in by my header injection, I checked the auth page to verify that the session fixation attack had been successful. 
-![Image](https://raw.githubusercontent.com/JankhJankh/CTF-Writeups/master/BSides%20Canberra%202019/images/fixie28.png            
+We can now refresh the page, and our cookie now has admin privileges
+![Image](https://raw.githubusercontent.com/JankhJankh/CTF-Writeups/master/BSides%20Canberra%202019/images/fixie28.png)           
+Once I had been logged back in by my header injection, I checked the auth page to verify that the session fixation attack had been successful.   
+![Image](https://raw.githubusercontent.com/JankhJankh/CTF-Writeups/master/BSides%20Canberra%202019/images/fixie29.png            
 As it said I was an admin, I browsed to the /flag directory found earlier and was presented with a flag.
-![Image](https://raw.githubusercontent.com/JankhJankh/CTF-Writeups/master/BSides%20Canberra%202019/images/fixie29.png)           
-
 ![Image](https://raw.githubusercontent.com/JankhJankh/CTF-Writeups/master/BSides%20Canberra%202019/images/fixie30.png)           
 Below is a timeline graphic to better show how this was exploited:
-![Image](https://raw.githubusercontent.com/JankhJankh/CTF-Writeups/master/BSides%20Canberra%202019/images/fixie31.png)          
+raw.githubusercontent.com/JankhJankh/CTF-Writeups/master/BSides%20Canberra%202019/images/fixie31.png)          
 In review, to access the flag we required a valid admin session. This session was hijacked though a session fixation attack by forcing an administrator to use our malicious cookie. The administrator was forced to use our malicious cookie via a header injection attack, enabling us to later log in as the administrator.      
 Once again, thanks for Cybears for running this CTF. I really enjoyed the layered aspects of this challenge.
