@@ -15,7 +15,7 @@ Exploring more of the website functionality, I also noticed that I could add a c
 As the banner is reflected to the user, I immediately checked for Cross-Site Scripting (or XSS). The idea being that if we can enter user data and make the browser treat our data as part of the website, we could potentially attack other users of the website – such as an administrator. 
 ![Image](https://raw.githubusercontent.com/JankhJankh/CTF-Writeups/master/BSides%20Canberra%202019/images/fixie6.png)            
 Unfortunately, XSS is sanitised here, as shown by the *\<h1\>hi\</h1\>* being rendered literally instead of as HTML (in which case, it would just say “hi” and be in a different font).     
-I ended up trying a few more strings, the last of which was “\<h1\>aaaa\</h1\>”*, and then looked at the website via a proxy again, this time aiming to see how it is sanitised. 
+I ended up trying a few more strings, the last of which was *“\<h1\>aaaa\</h1\>”*, and then looked at the website via a proxy again, this time aiming to see how it is sanitised. 
 ![Image](https://raw.githubusercontent.com/JankhJankh/CTF-Writeups/master/BSides%20Canberra%202019/images/fixie7.png)            
 However, upon viewing this code I saw that the banner string I had sent to the webserver had been put into a server header. Headers are extra bits of information hidden from users that give the browser extra information about the website. such as how much data there is, what type of data it is, and any cookies that the server has generated for the user.      
 Now that I knew that I could put user data into a header I attempted header injection. Header injection is an exploit where if user data is controlled in a header, and some form of newline (‘\r\n’, ‘\n’, ‘0x0a’, ‘0x0d’) can be put into the header, you could create any new headers you want. If there is no restriction on space, you could potentially control all data returned to the user (after the injection point, that is). A classic example is adding XSS to the website and then commenting out the rest of it. The example code for this is shown below.
@@ -62,7 +62,7 @@ Assuming the admin was also viewing the page, their session should have been ove
 We can now refresh the page, and our cookie now has admin privileges
 ![Image](https://raw.githubusercontent.com/JankhJankh/CTF-Writeups/master/BSides%20Canberra%202019/images/fixie28.png)           
 Once I had been logged back in by my header injection, I checked the auth page to verify that the session fixation attack had been successful.   
-![Image](https://raw.githubusercontent.com/JankhJankh/CTF-Writeups/master/BSides%20Canberra%202019/images/fixie29.png            
+![Image](https://raw.githubusercontent.com/JankhJankh/CTF-Writeups/master/BSides%20Canberra%202019/images/fixie29.png)            
 As it said I was an admin, I browsed to the /flag directory found earlier and was presented with a flag.
 ![Image](https://raw.githubusercontent.com/JankhJankh/CTF-Writeups/master/BSides%20Canberra%202019/images/fixie30.png)           
 Below is a timeline graphic to better show how this was exploited:
